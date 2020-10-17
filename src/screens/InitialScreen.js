@@ -19,46 +19,13 @@ const weather = {
     rain: {color: '#516296', icon: 'cloud-rain'}, //Chuva
     snow: {color: '#bcccff', icon: 'cloud-snow'}, // Neve
     thunderstorm: {color: '#272f48', icon: 'cloud-lightning'}, // Tempestade
-    other: {color: '#a6b4c5', icon: 'wind'},
-    default: {color: '#000', icon: 'download-cloud'},
-}
-
-const defaultWeather = {
-    weather: [
-        {
-            "id": 803,
-            "main": "Clouds",
-            "description": "broken clouds",
-            "icon": "04d"
-        }
-    ],
-    main: {
-        "temp": 28.25,
-        "feels_like": 27.92,
-        "temp_min": 28.25,
-        "temp_max": 28.25,
-        "pressure": 1016,
-        "humidity": 42,
-        "sea_level": 1016,
-        "grnd_level": 1000
-    },
-    visibility: 10000,
-    wind: {
-        "speed": 2.32,
-    },
-    sys: {
-        "country": "BR",
-        "sunrise": 1602924876,
-        "sunset": 1602971163
-    },
-    name: "- - -",
+    other: {color: '#a6b4c5', icon: 'wind'}
 }
 
 const InitialScreen = () => {
 
-    const [pickedLocation, setPickedLocation] = useState();
-    const [currentStyle, setCurrentStyle] = useState('default');
-    const [currentWeather, setCurrentWeather] = useState(defaultWeather);
+    const [currentStyle, setCurrentStyle] = useState('other');
+    const [currentWeather, setCurrentWeather] = useState(null);
 
 
     const verifyPermissions = async () => {
@@ -76,7 +43,7 @@ const InitialScreen = () => {
 
     const getApiInfo = async (lat, lon) => {
         return await api.get(
-            `/weather?lat=${lat}&lon=${lon}&lang=pt_br&appid=fd76d38854859b84b47b4a5e29b0170f`
+            `/weather?lat=${lat}&lon=${lon}&lang=pt_br&units=metric&appid=fd76d38854859b84b47b4a5e29b0170f`
         );
     }
 
@@ -88,18 +55,33 @@ const InitialScreen = () => {
 
         try {
             const location = await Location.getCurrentPositionAsync({timeout: 7000});
-            setPickedLocation({
-                lat: location.coords.latitude,
-                lng: location.coords.longitude,
-            });
 
             const response = await getApiInfo(
                 location.coords.latitude, 
                 location.coords.longitude
             );
 
-            console.log('####### Name: ', response.data.base);
-            setCurrentWeather(response.data);
+            const temp = Math.round( response.data.main.feels_like );
+
+            let sunriseTime = new Date(response.data.sys.sunrise * 1000);
+            let sunsetTime = new Date(response.data.sys.sunset * 1000);
+
+            let sunrise =  sunriseTime.toLocaleTimeString();
+            let sunset =  sunsetTime.toLocaleTimeString();
+
+            const speed = Math.round( response.data.wind.speed );
+
+            setCurrentWeather({
+                name: response.data.name,
+                description: response.data.weather[0].description,
+                temp,
+                sunrise: sunrise.toString().slice(0, 5),
+                sunset: sunset.toString().slice(0, 5),
+                humidity: response.data.main.humidity,
+                pressure: response.data.main.pressure,
+                visibility: response.data.visibility,
+                speed,
+            });
         } catch (err) {
             console.log('####################deu ruim')
             Alert.alert(
@@ -113,39 +95,55 @@ const InitialScreen = () => {
     
     return (
         <>
-            <ScrollView style={{...styles.container, backgroundColor: weather[currentStyle].color}}>
-                <Text style={styles.cityText}>{currentWeather.name}</Text>
-                <Text style={styles.descriptionText}>{currentWeather.weather[0].description}</Text>
-                <View style={styles.mainBlock}>
-                    <View style={styles.tempContainer}>
-                        
-                        <Text style={styles.bigTempText}>28º</Text>
-                        <Text style={styles.tempsText}>20º - 28º</Text>
+            {!currentWeather ? 
+                <View style={styles.noDataContainer}>
+                    <Text style={styles.noDataText}>
+                        Clique em ATUALIZAR para carregar as informações climáticas da sua região!
+                    </Text>
+                </View> 
+                : 
+                <ScrollView style={{
+                    ...styles.container, 
+                    backgroundColor: weather[currentStyle].color
+                }}>
+                    <Text style={styles.cityText}>{currentWeather.name}</Text>
+                    <Text style={styles.descriptionText}>
+                        {currentWeather.description}
+                    </Text>
+                    <View style={styles.mainBlock}>
+                        <View style={styles.tempContainer}>
+                            
+                            <Text style={styles.bigTempText}>
+                                {currentWeather.temp}º
+                            </Text>
+                        </View>
+
+                        <View style={styles.iconContainer}>
+                            <Feather 
+                                name={weather[currentStyle].icon} 
+                                size={70} 
+                                color="white" 
+                            />
+                        </View>
                     </View>
 
-                    <View style={styles.iconContainer}>
-                        <Feather name={weather[currentStyle].icon} size={70} color="white" />
-                        
-                    </View>
-                </View>
+                    <InfoRow>
+                        <InfoBlock title="O SOL NASCE" content={currentWeather.sunrise} />
+                        <InfoBlock title="O SOL SE PÕE" content={currentWeather.sunset} />
+                    </InfoRow>
 
-                <InfoRow>
-                    <InfoBlock title="O SOL NASCE" content="7:17 am" />
-                    <InfoBlock title="O SOL SE PÕE" content="16:17 pm" />
-                </InfoRow>
+                    <InfoRow>
+                        <InfoBlock title="UMIDADE" content={currentWeather.humidity+" %"} />
+                        <InfoBlock title="PRESSÃO" content={currentWeather.pressure+" hPa"} />
+                    </InfoRow>
 
-                <InfoRow>
-                    <InfoBlock title="UMIDADE" content="51 %" />
-                    <InfoBlock title="PRESSÃO" content="1019 hPa" />
-                </InfoRow>
-
-                <InfoRow>
-                    <InfoBlock title="VISIBILIDADE" content="10000" />
-                    <InfoBlock title="VENTO" content="4.3 m/s" />
-                </InfoRow>
-                
-            </ScrollView>
-            
+                    <InfoRow>
+                        <InfoBlock title="VISIBILIDADE" content={currentWeather.visibility} />
+                        <InfoBlock title="VENTO" content={currentWeather.speed+" m/s"} />
+                    </InfoRow>
+                    
+                </ScrollView>
+            }
             <ButtonContainer onPress={getLocationHandler} />
         </>
     );
@@ -154,6 +152,16 @@ const InitialScreen = () => {
     export default InitialScreen;
     
     const styles = StyleSheet.create({
+        noDataContainer: {
+            flex: 1,
+            alignItems: 'center',
+            justifyContent: 'center',
+            paddingHorizontal: 30,
+        },
+        noDataText: {
+            fontSize: 18,
+            textAlign: 'center',
+        },
         container: {
             flex: 1,
             paddingHorizontal: 20,
@@ -180,13 +188,13 @@ const InitialScreen = () => {
             paddingBottom: 30,
         },
         tempContainer: {
-            flex: 3,
+            flex: 1,
             justifyContent: 'center'
         },
         
         bigTempText: {
             color: 'white',
-            fontSize: 70,
+            fontSize: 80,
             fontWeight: 'bold',
         },
         tempsText: {
@@ -194,11 +202,10 @@ const InitialScreen = () => {
             fontSize: 25,
         },
         iconContainer: {
-            flex: 2,
+            //backgroundColor: '#333',
+            flex: 1,
             alignItems: 'center',
             justifyContent: 'center',
         },
-        
-
     });
     
