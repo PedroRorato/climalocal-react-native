@@ -54,23 +54,56 @@ const InitialScreen = () => {
         }
 
         try {
+            //Buscar localização do aparelho
             const location = await Location.getCurrentPositionAsync({timeout: 7000});
 
+            // Puxar dados da API
             const response = await getApiInfo(
                 location.coords.latitude, 
                 location.coords.longitude
             );
 
-            const temp = Math.round( response.data.main.feels_like );
+            // Setar Estilo
+            const mainCondition = response.data.weather[0].main;
+            switch (mainCondition) {
+                case 'Clear':
+                    setCurrentStyle('clear');
+                    break;
 
+                case 'Clouds':
+                    setCurrentStyle('clouds');
+                    break;
+
+                case 'Drizzle':
+                    setCurrentStyle('drizzle');
+                    break;
+
+                case 'Rain':
+                    setCurrentStyle('rain');
+                    break;
+
+                case 'Snow':
+                    setCurrentStyle('snow');
+                    break;
+
+                case 'Thunderstorm':
+                    setCurrentStyle('thunderstorm');
+                    break;
+            
+                default:
+                    setCurrentStyle('other');
+                    break;
+            }
+
+            // Tratar dados para a interface
+            const temp = Math.round( response.data.main.feels_like );
             let sunriseTime = new Date(response.data.sys.sunrise * 1000);
             let sunsetTime = new Date(response.data.sys.sunset * 1000);
-
             let sunrise =  sunriseTime.toLocaleTimeString();
             let sunset =  sunsetTime.toLocaleTimeString();
-
             const speed = Math.round( response.data.wind.speed );
-
+            
+            // Setar dados
             setCurrentWeather({
                 name: response.data.name,
                 description: response.data.weather[0].description,
@@ -82,8 +115,12 @@ const InitialScreen = () => {
                 visibility: response.data.visibility,
                 speed,
             });
+
+            
+
+
         } catch (err) {
-            console.log('####################deu ruim')
+            console.log('####################deu ruim', err);
             Alert.alert(
                 'Could not fetch location!',
                 'Please try again later',
