@@ -1,5 +1,14 @@
 import React, { useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { 
+    ActivityIndicator, 
+    Alert, 
+    Platform,
+    ScrollView, 
+    StatusBar, 
+    StyleSheet, 
+    Text, 
+    View 
+} from 'react-native';
 
 import * as Location from 'expo-location';
 import * as Permissions from 'expo-location';
@@ -26,6 +35,7 @@ const InitialScreen = () => {
 
     const [currentStyle, setCurrentStyle] = useState('other');
     const [currentWeather, setCurrentWeather] = useState(null);
+    const [spinnerDisplay, setSpinnerDisplay] = useState(false);
 
 
     const verifyPermissions = async () => {
@@ -48,6 +58,7 @@ const InitialScreen = () => {
     }
 
     const getLocationHandler = async () => {
+        setSpinnerDisplay(true);
         const hasPermission = await verifyPermissions();
         if(!hasPermission) {
             return;
@@ -116,18 +127,16 @@ const InitialScreen = () => {
                 speed,
             });
 
-            
-
-
         } catch (err) {
             console.log('####################deu ruim', err);
             Alert.alert(
-                'Could not fetch location!',
-                'Please try again later',
-                [{ text: 'Okay' }]
+                'Não foi possível encontrar a localização!',
+                'Por favor, tente mais tarde',
+                [{ text: 'Ok' }]
             );
         }
-        
+
+        setSpinnerDisplay(false);
     };
     
     return (
@@ -181,7 +190,22 @@ const InitialScreen = () => {
                     
                 </ScrollView>
             }
+
             <ButtonContainer onPress={getLocationHandler} />
+
+            {Platform.OS == 'android' &&
+                <StatusBar barStyle='light-content' />
+            }
+            
+            {spinnerDisplay && 
+                <View style={styles.spinner}>
+                    <ActivityIndicator 
+                        size="large" 
+                        color="#000" 
+                    />
+                </View>
+            }
+            
         </>
     );
 };
@@ -189,6 +213,15 @@ const InitialScreen = () => {
     export default InitialScreen;
     
     const styles = StyleSheet.create({
+        spinner: {
+            backgroundColor: 'rgba(255, 255, 255, 0.25)',
+            position: 'absolute',
+            display: 'flex',
+            height: '100%',
+            width: '100%',
+            alignItems: 'center',
+            justifyContent: 'center',
+        },
         noDataContainer: {
             flex: 1,
             alignItems: 'center',
