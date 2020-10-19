@@ -128,7 +128,7 @@ const InitialScreen = () => {
             });
 
         } catch (err) {
-            console.log('####################deu ruim', err);
+            console.log('####################Erro: ', err);
             Alert.alert(
                 'Não foi possível encontrar a localização!',
                 'Por favor, tente mais tarde',
